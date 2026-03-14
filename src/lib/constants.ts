@@ -1,0 +1,40 @@
+export const DSA_TOPICS = [
+  "Arrays",
+  "Strings",
+  "Hash Table",
+  "Math",
+  "Sorting",
+  "Greedy",
+  "Binary Search",
+  "Two Pointers",
+  "Sliding Window",
+  "Stack",
+  "Queue",
+  "Linked List",
+  "Trees",
+  "Binary Tree",
+  "Binary Search Tree",
+  "Heap / Priority Queue",
+  "Graphs",
+  "Depth-First Search",
+  "Breadth-First Search",
+  "Backtracking",
+  "Dynamic Programming",
+  "Divide and Conquer",
+  "Trie",
+  "Union Find",
+  "Bit Manipulation",
+  "Matrix",
+  "Recursion",
+  "Monotonic Stack",
+  "Topological Sort",
+  "Segment Tree",
+] as const;
+
+export type DSATopic = (typeof DSA_TOPICS)[number];
+
+export const DIFFICULTY_COLORS: Record<string, string> = {
+  Easy: "#00B8A3",
+  Medium: "#FFC01E",
+  Hard: "#FF375F",
+};

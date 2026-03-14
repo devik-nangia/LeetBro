@@ -29,8 +29,26 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploying on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This app is production-ready and can be deployed easily on Vercel. Because it uses Next-Auth and Prisma, you'll need to set up a few things before hitting deploy.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 1. Push to GitHub
+Upload your code to a GitHub repository if you haven't already.
+
+### 2. Prepare Environment Variables
+You'll need these variables ready:
+- `AUTH_SECRET`: Generate a random 32-character string (e.g., using `openssl rand -base64 32`).
+- `AUTH_GOOGLE_ID` & `AUTH_GOOGLE_SECRET`: Get these from the [Google Cloud Console](https://console.cloud.google.com/) by creating OAuth 2.0 Client IDs. Set the authorized redirect URI to `https://your-deployment-url.vercel.app/api/auth/callback/google`.
+- `GEMINI_API_KEY`: Get this from Google AI Studio.
+- `DATABASE_URL`: You'll need a PostgreSQL database. Vercel provides **Vercel Postgres** which integrates automatically.
+
+### 3. Deploy on Vercel
+1. Log into [Vercel](https://vercel.com/) and click **Add New... > Project**.
+2. Import your GitHub repository.
+3. In the "Environment Variables" section, add all the variables from step 2.
+4. If you don't have a database yet, you can add Vercel Postgres in the "Storage" tab of your Vercel project settings later, which will automatically inject `POSTGRES_URL` (you'll need to update your `schema.prisma` or set `DATABASE_URL` to match).
+5. Open the "Build and Output Settings" and ensure the Build Command is `npm run build`. 
+6. Click **Deploy**.
+
+*(Note: Vercel will automatically run `prisma generate` during the build step because `prisma` is a standard dependency).*
