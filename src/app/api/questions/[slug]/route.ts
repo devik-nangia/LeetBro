@@ -35,9 +35,9 @@ export async function GET(
         data: {
           slug: lcData.titleSlug,
           title: `${lcData.questionFrontendId}. ${lcData.title}`,
-          difficulty: lcData.difficulty,
-          description: lcData.content,
-          tags: lcData.topicTags.map((t) => t.name),
+          difficulty: lcData.difficulty ?? "Medium",
+          description: lcData.content ?? "Description not available. This is usually due to the question requiring a Premium LeetCode subscription.",
+          tags: lcData.topicTags ? lcData.topicTags.map((t) => t.name) : [],
           leetcodeId: parseInt(lcData.questionFrontendId, 10),
         },
       });
