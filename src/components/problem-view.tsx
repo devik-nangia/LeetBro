@@ -172,7 +172,7 @@ function IterationVisualizer({
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[1.1fr_1.3fr]">
-          <div className="space-y-3 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-[280px] xl:h-[500px] xl:max-h-none overflow-y-auto pr-2 custom-scrollbar">
             {iteration.steps.map((step, index) => {
               const isActive = index === activeStepIndex;
 
@@ -199,7 +199,7 @@ function IterationVisualizer({
             })}
           </div>
 
-          <div className="rounded-[24px] border border-[#262C38] bg-[linear-gradient(180deg,#121722_0%,#0D1017_100%)] p-5 flex flex-col gap-6 max-h-[500px] overflow-y-auto custom-scrollbar">
+          <div className="rounded-[24px] border border-[#262C38] bg-[linear-gradient(180deg,#121722_0%,#0D1017_100%)] p-5 flex flex-col gap-6 max-h-[380px] xl:max-h-[500px] overflow-y-auto custom-scrollbar">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-leetcode mb-2">Detailed Explanation</p>
               <p className="text-sm leading-6 text-slate-200">{activeStep.explanation}</p>
@@ -542,7 +542,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-[72px] lg:mt-20 space-y-6">
+      <div className="mt-4 lg:mt-20 space-y-6">
         <div className="space-y-3">
           <div className="h-8 w-2/3 rounded-lg shimmer" />
           <div className="flex gap-2">
@@ -625,7 +625,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
   };
 
   return (
-    <div className="mt-[72px] lg:mt-20">
+    <div className="mt-4 lg:mt-20">
       {/* ── Header ────────────────────────────────────── */}
       <div className="mb-6">
         <div className="flex flex-wrap items-start gap-3 mb-3">

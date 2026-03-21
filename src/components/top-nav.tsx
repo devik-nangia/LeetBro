@@ -165,9 +165,9 @@ export function TopNav() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border bg-[#1F1F1F]/80 backdrop-blur-xl">
         {/* Main nav row */}
-        <div className="flex h-full items-center px-4 gap-2">
+        <div className="relative flex h-full items-center px-4">
           {/* LEFT: Hamburger (mobile) + Logo */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 z-10">
             <button
               className="md:hidden flex items-center justify-center h-9 w-9 rounded-lg hover:bg-[#2A2A2A] transition-colors"
               onClick={() => setMobileMenuOpen(true)}
@@ -175,7 +175,7 @@ export function TopNav() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80 md:min-w-[220px]">
+            <Link href="/dashboard" className="flex items-center gap-2 transition-opacity hover:opacity-80">
               <Code2 className="h-6 w-6 text-[#FFA116]" />
               <span className="text-lg font-bold hidden sm:block">
                 Leet<span className="text-[#FFA116]">Bro</span>
@@ -183,8 +183,8 @@ export function TopNav() {
             </Link>
           </div>
 
-          {/* CENTER: Desktop search (hidden on mobile) */}
-          <div className="hidden md:flex flex-1 relative max-w-xl mx-4">
+          {/* CENTER: Desktop search — absolutely centered in the navbar */}
+          <div className="hidden md:block absolute left-1/2 -translate-x-1/2 w-full max-w-xl px-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -200,7 +200,7 @@ export function TopNav() {
               />
             </div>
             {isOpen && (query.length >= 2) && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#262626] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-50">
+              <div className="absolute top-full left-4 right-4 mt-1 bg-[#262626] border border-[#333] rounded-lg shadow-2xl overflow-hidden z-50">
                 {isLoading ? (
                   <div className="p-4 text-center text-muted-foreground text-sm">
                     <div className="flex items-center justify-center gap-2">
@@ -236,19 +236,18 @@ export function TopNav() {
             )}
           </div>
 
-          {/* Mobile spacer — pushes right group to the right edge on mobile */}
-          <div className="flex-1 md:hidden" aria-hidden="true" />
-
-          {/* RIGHT: Search icon (mobile) + Profile — always visible */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Mobile search toggle */}
-            <button
-              className="md:hidden flex items-center justify-center h-9 w-9 rounded-lg hover:bg-[#2A2A2A] transition-colors"
-              onClick={() => setSearchExpanded((prev) => !prev)}
-              aria-label="Search"
-            >
-              {searchExpanded ? <X className="h-5 w-5" /> : <Search className="h-5 w-5 text-muted-foreground" />}
-            </button>
+          {/* RIGHT: Search icon (mobile) + Profile — always visible, pinned to the right */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto z-10">
+            {/* Mobile search toggle - only show if not on dashboard */}
+            {pathname !== "/dashboard" && (
+              <button
+                className="md:hidden flex items-center justify-center h-9 w-9 rounded-lg hover:bg-[#2A2A2A] transition-colors"
+                onClick={() => setSearchExpanded((prev) => !prev)}
+                aria-label="Search"
+              >
+                {searchExpanded ? <X className="h-5 w-5" /> : <Search className="h-5 w-5 text-muted-foreground" />}
+              </button>
+            )}
 
             {/* Profile */}
             {session?.user ? (
