@@ -181,18 +181,7 @@ export function TopNav() {
                 Leet<span className="text-[#FFA116]">Bro</span>
               </span>
             </Link>
-            {/* Desktop Roadmaps link */}
-            <Link
-              href="/roadmaps"
-              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                pathname?.startsWith("/roadmaps")
-                  ? "bg-[#FFA116]/10 text-[#FFA116] border border-[#FFA116]/20"
-                  : "text-neutral-400 hover:text-white hover:bg-[#2A2A2A]"
-              }`}
-            >
-              <Map className="h-4 w-4" />
-              Roadmaps
-            </Link>
+
           </div>
 
           {/* CENTER: Desktop search — absolutely centered in the navbar */}
