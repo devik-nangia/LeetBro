@@ -87,6 +87,8 @@ model QuestionAIContent {
   solutionPython String @db.Text
   solutionJava   String @db.Text
   solutionCpp    String @db.Text
+  complexity     String? @db.Text
+  implementations String? @db.Text
   createdAt   DateTime @default(now())
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)

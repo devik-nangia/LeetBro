@@ -73,7 +73,7 @@ export default function DashboardHome() {
           <SparklesIcon className="w-4 h-4" />
           <span>Level up your algorithmic intuition</span>
         </div>
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-neutral-200 to-neutral-600 mb-6 drop-shadow-sm">
+        <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-neutral-200 to-neutral-600 mb-6 drop-shadow-sm">
           Welcome back,<br />{userName}.
         </h1>
         <p className="text-xl text-neutral-400 max-w-2xl font-light leading-relaxed">

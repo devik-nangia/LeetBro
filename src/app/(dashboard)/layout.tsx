@@ -10,7 +10,7 @@ export default function DashboardLayout({
     <div className="min-h-screen">
       <TopNav />
       <Sidebar />
-      <main className="ml-[250px] pt-14 p-6">
+      <main className="md:ml-[250px] pt-14 p-4 md:p-6">
         {children}
       </main>
     </div>

@@ -24,15 +24,28 @@ export async function POST(
     const question = await prisma.question.findUnique({
       where: { slug },
       select: {
+        id: true,
         title: true,
         difficulty: true,
         description: true,
         tags: true,
+        aiContent: true,
       },
     });
 
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    if (question.aiContent?.complexity) {
+      try {
+        const cached = JSON.parse(question.aiContent.complexity) as ComplexityResponse;
+        if (cached?.ladder && Array.isArray(cached.ladder) && cached.ladder.length > 0) {
+          return NextResponse.json(cached);
+        }
+      } catch {
+        // Cache invalid, proceed to regenerate
+      }
     }
 
     if (!geminiModel) {
@@ -91,6 +104,13 @@ Rules:
 
     if (!parsed?.ladder || !Array.isArray(parsed.ladder) || parsed.ladder.length === 0) {
       throw new Error("AI did not return a valid complexity ladder.");
+    }
+
+    if (question.aiContent) {
+      await prisma.questionAIContent.update({
+        where: { id: question.aiContent.id },
+        data: { complexity: JSON.stringify(parsed) },
+      });
     }
 
     return NextResponse.json(parsed);

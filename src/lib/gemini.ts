@@ -30,41 +30,16 @@ export interface GeminiQuestionResponse {
   approach: string;
   algorithm: string;
   visualize: {
-    version: "2";
-    metaphor: string;
-    objective: string;
-    invariant: string;
-    stages: Array<{
-      id: string;
+    name: string;
+    dataStructure: "array" | "tree" | "linkedlist" | "string" | "graph" | "matrix" | "other";
+    inputExample: string;
+    steps: Array<{
+      step: number;
       title: string;
-      goal: string;
-      inputFocus: string;
-      operation: string;
-      outputState: string;
-      whyItMatters: string;
+      explanation: string;
+      variables: Array<{ name: string; value: string }>;
+      visualState: string;
     }>;
-    connections: Array<{
-      from: string;
-      to: string;
-      label: string;
-    }>;
-    decisions: Array<{
-      label: string;
-      condition: string;
-      ifTrue: string;
-      ifFalse: string;
-    }>;
-    snapshots: Array<{
-      label: string;
-      focus: string;
-      items: string[];
-    }>;
-    pitfalls: string[];
-    complexity: {
-      time: string;
-      space: string;
-      driver: string;
-    };
   };
   solutionPython: string;
   solutionJava: string;
@@ -92,60 +67,29 @@ Return a JSON object with these exact keys:
 3. "hint3": A very strong hint that nearly describes the solution approach without showing any code. Someone reading this should almost know the exact algorithm (2-3 sentences).
 4. "approach": A detailed 2-3 paragraph explanation of HOW to think about this problem. Describe the mental model, key observations, and why a particular approach works. Do NOT include any code.
 5. "algorithm": A numbered step-by-step list (as a single string with newlines) describing the exact logical steps to implement the solution. NO code blocks. NO pseudocode. Pure english logical steps.
-6. "visualize": An object representing a VISUAL SOLUTION BLUEPRINT. This must help the user imagine the algorithm in motion, not restate pseudocode.
+6. "visualize": An object representing an EXAMPLE ITERATION. For every single question, take a concrete list, array, tree, or string as input and solve the question on that data structure, showing each step of the solution in extreme detail so the user can visualize what actually happens in each iteration.
    Use this exact structure:
    {
-     "version": "2",
-     "metaphor": "Short vivid analogy for the algorithm. Example: Sweep a window across the array while a hash map acts like memory.",
-     "objective": "One sentence describing what the algorithm is trying to lock in.",
-     "invariant": "One sentence describing what remains true throughout execution.",
-     "stages": [
+     "name": "Algorithm Trace",
+     "dataStructure": "array", // Can be array, tree, linkedlist, string, graph, matrix, or other
+     "inputExample": "Explain the input concisely, e.g. nums = [2, 7, 11, 15], target = 9",
+     "steps": [
        {
-         "id": "stage-1",
-         "title": "Short stage name",
-         "goal": "What this stage accomplishes",
-         "inputFocus": "What state/data we are looking at before acting",
-         "operation": "What transformation/check/update happens here",
-         "outputState": "What the state looks like after this stage",
-         "whyItMatters": "Why this stage is necessary"
+         "step": 1,
+         "title": "Initialization",
+         "explanation": "What we are doing in this step in extreme detail.",
+         "variables": [
+           { "name": "i", "value": "0" },
+           { "name": "current_sum", "value": "2" }
+         ],
+         "visualState": "An ASCII or structured text representation of the data structure at this exact moment. Highlight pointers, current nodes, or current array indices. For example: [ *2*, 7, 11, 15 ]\\n     ^ i=0"
        }
-     ],
-     "connections": [
-       {
-         "from": "stage-1",
-         "to": "stage-2",
-         "label": "What causes the transition"
-       }
-     ],
-     "decisions": [
-       {
-         "label": "Decision name",
-         "condition": "What is being checked",
-         "ifTrue": "What happens if the condition passes",
-         "ifFalse": "What happens otherwise"
-       }
-     ],
-     "snapshots": [
-       {
-         "label": "Snapshot name",
-         "focus": "What moment of the algorithm this captures",
-         "items": ["3-4 short bullets describing the visible state"]
-       }
-     ],
-     "pitfalls": ["3-4 concise mistakes or failure modes"],
-     "complexity": {
-       "time": "Big-O time",
-       "space": "Big-O space",
-       "driver": "Why those costs happen"
-     }
+     ]
    }
    Requirements:
-   - Provide 4 to 7 stages.
-   - Provide 2 to 5 decisions.
-   - Provide 3 to 5 snapshots.
-   - Keep every field concise and concrete.
-   - The blueprint must be about state transitions, invariants, and data movement.
-   - Do NOT output nodes/edges format. Do NOT output pseudocode disguised as labels.
+   - Provide enough steps to vividly illustrate the core logic on a non-trivial example input.
+   - The visualState MUST be clear, easy to read, and accurately reflect the step's changes. Use ASCII art/markers to show traversal.
+   - Keep variable states minimal but impactful (only track the most important pointers/counters).
 7. "solutionPython": The optimal solution code in Python. Include comments explaining key lines.
 8. "solutionJava": The optimal solution code in Java. Include comments explaining key lines.
 9. "solutionCpp": The optimal solution code in C++. Include comments explaining key lines.

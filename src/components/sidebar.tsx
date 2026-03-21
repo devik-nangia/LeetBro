@@ -59,6 +59,10 @@ export function Sidebar() {
     };
 
     fetchHistory();
+
+    const handleHistoryUpdated = () => fetchHistory();
+    window.addEventListener("historyUpdated", handleHistoryUpdated);
+    return () => window.removeEventListener("historyUpdated", handleHistoryUpdated);
   }, [session]);
 
   const filteredHistory = history.filter((item) => {
@@ -84,7 +88,7 @@ export function Sidebar() {
     : null;
 
   return (
-    <aside className="fixed top-14 left-0 bottom-0 w-[250px] border-r border-border bg-[#1F1F1F] flex flex-col z-40">
+    <aside className="fixed top-14 left-0 bottom-0 w-[250px] border-r border-border bg-[#1F1F1F] hidden md:flex flex-col z-40">
       {/* Stats Header */}
       <div className="p-4 border-b border-[#333]">
         <div className="flex items-center gap-2 mb-1">

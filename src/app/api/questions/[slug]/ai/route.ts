@@ -53,10 +53,6 @@ export async function POST(
     // Strip markdown code fences if present (```json ... ```)
     responseText = responseText.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
 
-    // Fix invalid escape sequences that Gemini sometimes produces in code strings
-    // Replace bad escapes like \' \` etc. with their literal equivalents
-    responseText = responseText.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
-
     let aiData: GeminiQuestionResponse;
     try {
       aiData = JSON.parse(responseText);

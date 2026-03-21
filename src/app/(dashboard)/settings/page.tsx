@@ -82,7 +82,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Settings className="h-8 w-8 text-[#FFA116]" />
           <div>
@@ -95,7 +95,7 @@ export default function SettingsPage() {
         <Button
           onClick={handleSave}
           disabled={isSubmitting}
-          className={`h-10 px-6 font-medium transition-all ${
+          className={`w-full sm:w-auto h-10 px-6 font-medium transition-all ${
             saved 
               ? "bg-[#00B8A3] hover:bg-[#009b89] text-white"
               : "bg-[#FFA116] hover:bg-[#CC8112] text-black"

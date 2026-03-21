@@ -26,15 +26,28 @@ export async function POST(
     const question = await prisma.question.findUnique({
       where: { slug },
       select: {
+        id: true,
         title: true,
         difficulty: true,
         description: true,
         tags: true,
+        aiContent: true,
       },
     });
 
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    if (question.aiContent?.implementations) {
+      try {
+        const cached = JSON.parse(question.aiContent.implementations) as ImplementationsResponse;
+        if (cached?.implementations && Array.isArray(cached.implementations) && cached.implementations.length > 0) {
+          return NextResponse.json(cached);
+        }
+      } catch {
+        // Cache invalid, proceed to regenerate
+      }
     }
 
     if (!geminiModel) {
@@ -99,6 +112,13 @@ Rules:
       parsed.implementations.length === 0
     ) {
       throw new Error("AI did not return valid implementations.");
+    }
+
+    if (question.aiContent) {
+      await prisma.questionAIContent.update({
+        where: { id: question.aiContent.id },
+        data: { implementations: JSON.stringify(parsed) },
+      });
     }
 
     return NextResponse.json(parsed);

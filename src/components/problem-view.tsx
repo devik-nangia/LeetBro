@@ -51,6 +51,8 @@ interface QuestionData {
     solutionPython: string;
     solutionJava: string;
     solutionCpp: string;
+    complexity?: string;
+    implementations?: string;
   } | null;
 }
 
@@ -67,72 +69,19 @@ function FadeIn({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface FlowNode {
-  id: string;
-  label: string;
-  type?: "default" | "input" | "output";
-}
-
-interface FlowEdge {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;
-  animated?: boolean;
-}
-
-interface FlowGraph {
-  nodes: FlowNode[];
-  edges: FlowEdge[];
-}
-
-interface BlueprintStage {
-  id: string;
+interface ExampleIterationStep {
+  step: number;
   title: string;
-  goal: string;
-  inputFocus: string;
-  operation: string;
-  outputState: string;
-  whyItMatters: string;
+  explanation: string;
+  variables: Array<{ name: string; value: string }>;
+  visualState: string;
 }
 
-interface BlueprintConnection {
-  from: string;
-  to: string;
-  label: string;
-}
-
-interface BlueprintDecision {
-  label: string;
-  condition: string;
-  ifTrue: string;
-  ifFalse: string;
-}
-
-interface BlueprintSnapshot {
-  label: string;
-  focus: string;
-  items: string[];
-}
-
-interface BlueprintComplexity {
-  time: string;
-  space: string;
-  driver: string;
-}
-
-interface ProblemBlueprint {
-  version: "2";
-  metaphor: string;
-  objective: string;
-  invariant: string;
-  stages: BlueprintStage[];
-  connections: BlueprintConnection[];
-  decisions: BlueprintDecision[];
-  snapshots: BlueprintSnapshot[];
-  pitfalls: string[];
-  complexity: BlueprintComplexity;
-  source: "blueprint" | "legacy" | "fallback";
+interface ExampleIteration {
+  name: string;
+  dataStructure: "array" | "tree" | "linkedlist" | "string" | "graph" | "matrix" | "other";
+  inputExample: string;
+  steps: ExampleIterationStep[];
 }
 
 interface ComplexityTier {
@@ -153,253 +102,43 @@ interface ImplementationTier {
   solutionCpp: string;
 }
 
-function parseVisualization(visualize: string | object | null | undefined): unknown {
+function parseVisualization(visualize: string | object | null | undefined): ExampleIteration | null {
   if (!visualize) return null;
-  if (typeof visualize === "object") return visualize;
+  let parsed = visualize;
   if (typeof visualize === "string" && visualize.trim().startsWith("{")) {
     try {
-      return JSON.parse(visualize);
+      parsed = JSON.parse(visualize);
     } catch {
       return null;
     }
   }
+  
+  if (typeof parsed === "object" && parsed !== null && "steps" in parsed) {
+    return parsed as ExampleIteration;
+  }
   return null;
 }
 
-function isFlowGraph(value: unknown): value is FlowGraph {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    "nodes" in value &&
-    "edges" in value &&
-    Array.isArray((value as FlowGraph).nodes) &&
-    Array.isArray((value as FlowGraph).edges)
-  );
-}
-
-function isBlueprint(value: unknown): value is Omit<ProblemBlueprint, "source"> {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    (value as { version?: string }).version === "2" &&
-    Array.isArray((value as ProblemBlueprint).stages)
-  );
-}
-
-function getLines(text: string | undefined) {
-  return (text ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.replace(/^\d+[.)]\s*/, "").replace(/^[-*]\s*/, ""));
-}
-
-function getSentences(text: string | undefined) {
-  return (text ?? "")
-    .replace(/\s+/g, " ")
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
-}
-
-function shorten(text: string, fallback: string, limit = 56) {
-  const value = (text || "").trim() || fallback;
-  if (value.length <= limit) return value;
-  return `${value.slice(0, limit - 1).trimEnd()}...`;
-}
-
-function fallbackPitfalls(approach: string) {
-  const sentences = getSentences(approach).filter((sentence) => /avoid|careful|mistake|forget|wrong|edge/i.test(sentence));
-  if (sentences.length >= 3) {
-    return sentences.slice(0, 4).map((sentence) => shorten(sentence, sentence, 96));
-  }
-  return [
-    "Breaking the invariant by updating state in the wrong order.",
-    "Missing the boundary condition that tells the algorithm to stop or shrink.",
-    "Tracking too much state when one focused structure would be enough.",
-  ];
-}
-
-function deriveDecisions(lines: string[]) {
-  const candidates = lines.filter((line) => /\b(if|when|while|until|else|match|compare|found)\b/i.test(line));
-  if (candidates.length === 0) {
-    return [
-      {
-        label: "Progress check",
-        condition: "Does the current state satisfy the invariant needed to keep moving?",
-        ifTrue: "Advance to the next stage without resetting useful work.",
-        ifFalse: "Repair the state before continuing so later steps stay valid.",
-      },
-    ];
-  }
-
-  return candidates.slice(0, 4).map((line, index) => ({
-    label: `Decision ${index + 1}`,
-    condition: line,
-    ifTrue: "Commit the transition and keep the good state.",
-    ifFalse: "Adjust the state and try the next valid move.",
-  }));
-}
-
-function buildFallbackBlueprint(params: {
-  title: string;
-  approach: string;
-  algorithm: string;
-  graph: FlowGraph | null;
-}): ProblemBlueprint {
-  const { title, approach, algorithm, graph } = params;
-  const algorithmLines = getLines(algorithm);
-  const approachSentences = getSentences(approach);
-  const rawStages = graph?.nodes.length
-    ? graph.nodes.map((node) => node.label)
-    : algorithmLines.slice(0, 6).map((line, index) => shorten(line, `Stage ${index + 1}`, 28));
-
-  const stages = rawStages.slice(0, 6).map((label, index) => {
-    const currentLine = algorithmLines[index] ?? `Shape the state for ${label}.`;
-    const nextLabel = rawStages[index + 1];
-
-    return {
-      id: graph?.nodes[index]?.id ?? `stage-${index + 1}`,
-      title: shorten(label, `Stage ${index + 1}`, 28),
-      goal: shorten(currentLine, `Move the solution toward ${nextLabel ?? "the answer"}.`, 120),
-      inputFocus:
-        approachSentences[index] ??
-        (index === 0
-          ? "Read the input shape and identify the state you need to maintain."
-          : "Carry the working state from the previous stage without losing the invariant."),
-      operation:
-        graph?.edges[index]?.label ||
-        currentLine ||
-        "Update the tracked state using the current element or pointer position.",
-      outputState:
-        nextLabel
-          ? `The state is now ready to hand off to ${shorten(nextLabel, "the next stage", 24)}.`
-          : "The accumulated state is ready to produce the final answer.",
-      whyItMatters:
-        approachSentences[index + 1] ??
-        "This stage prevents wasted work by preserving the one thing the algorithm must keep true.",
-    };
-  });
-
-  const connections = (graph?.edges.length
-    ? graph.edges.map((edge) => ({
-      from: edge.source,
-      to: edge.target,
-      label: edge.label || "Advance when the state is valid",
-    }))
-    : stages.slice(0, -1).map((stage, index) => ({
-      from: stage.id,
-      to: stages[index + 1].id,
-      label: algorithmLines[index] || "Pass the updated state forward",
-    }))) as BlueprintConnection[];
-
-  const snapshots: BlueprintSnapshot[] = [
-    {
-      label: "Initial landscape",
-      focus: "Before the algorithm commits to a direction",
-      items: [
-        `Understand what ${title} is really asking you to preserve or optimize.`,
-        stages[0]?.inputFocus ?? "Spot the starting state.",
-        "Decide what data must stay visible at every step.",
-      ],
-    },
-    {
-      label: "Working state",
-      focus: "Mid-flight while the algorithm is actively updating",
-      items: [
-        stages[1]?.operation ?? "Transform the tracked state.",
-        stages[2]?.whyItMatters ?? "Keep the invariant intact.",
-        "Drop stale information as soon as it stops helping.",
-      ],
-    },
-    {
-      label: "Resolved state",
-      focus: "The moment the answer becomes inevitable",
-      items: [
-        stages.at(-1)?.outputState ?? "Final answer is now extractable.",
-        "Only the minimal final state remains.",
-        "Return the answer without redoing the traversal.",
-      ],
-    },
-  ];
-
-  return {
-    version: "2",
-    metaphor: "Think of the algorithm as a control room that keeps only the signals that still matter and discards the noise.",
-    objective:
-      approachSentences[0] ??
-      "Move through the input while preserving the one state that makes the final answer cheap to produce.",
-    invariant:
-      approachSentences[1] ??
-      "At every step, the tracked state remains sufficient to make the next decision without restarting.",
-    stages,
-    connections,
-    decisions: deriveDecisions(algorithmLines),
-    snapshots,
-    pitfalls: fallbackPitfalls(approach),
-    complexity: {
-      time: "See final implementation",
-      space: "See final implementation",
-      driver: "The main cost comes from how many times the core state is updated while traversing the input.",
-    },
-    source: graph ? "legacy" : "fallback",
-  };
-}
-
-function normalizeBlueprint(params: {
-  title: string;
-  approach: string;
-  algorithm: string;
-  visualize: string | object | null | undefined;
-}) {
-  const parsed = parseVisualization(params.visualize);
-
-  if (isBlueprint(parsed)) {
-    return {
-      ...parsed,
-      metaphor: parsed.metaphor || "Visualize the algorithm as a staged system that keeps its useful state alive.",
-      objective: parsed.objective || "Track the smallest state that still lets the algorithm make the right next move.",
-      invariant: parsed.invariant || "The maintained state stays valid after every transition.",
-      stages: parsed.stages.slice(0, 7),
-      decisions: parsed.decisions.slice(0, 5),
-      snapshots: parsed.snapshots.slice(0, 5),
-      pitfalls: parsed.pitfalls.slice(0, 4),
-      source: "blueprint" as const,
-    };
-  }
-
-  return buildFallbackBlueprint({
-    title: params.title,
-    approach: params.approach,
-    algorithm: params.algorithm,
-    graph: isFlowGraph(parsed) ? parsed : null,
-  });
-}
-
-function ArchitectureStudio({
-  blueprint,
+function IterationVisualizer({
+  iteration,
   onRegenerate,
 }: {
-  blueprint: ProblemBlueprint;
+  iteration: ExampleIteration;
   onRegenerate?: () => void;
 }) {
-  const [activeStageId, setActiveStageId] = useState(blueprint.stages[0]?.id ?? "");
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
 
   useEffect(() => {
-    setActiveStageId(blueprint.stages[0]?.id ?? "");
-  }, [blueprint]);
+    setActiveStepIndex(0);
+  }, [iteration]);
 
-  const activeStage =
-    blueprint.stages.find((stage) => stage.id === activeStageId) ?? blueprint.stages[0];
-  const activeConnections = blueprint.connections.filter(
-    (connection) => connection.from === activeStage?.id || connection.to === activeStage?.id
-  );
+  const activeStep = iteration.steps[activeStepIndex] ?? iteration.steps[0];
 
-  if (!activeStage) {
+  if (!activeStep) {
     return (
       <div className="flex flex-col items-center gap-3 p-6 text-center">
         <AlertTriangle className="h-8 w-8 text-medium" />
-        <p className="text-sm text-muted-foreground">No visual blueprint is available for this problem yet.</p>
+        <p className="text-sm text-muted-foreground">No example iteration available yet.</p>
         {onRegenerate && (
           <Button size="sm" onClick={onRegenerate} className="bg-leetcode hover:bg-leetcode-dark text-black text-xs">
             Regenerate Visualization
@@ -411,100 +150,48 @@ function ArchitectureStudio({
 
   return (
     <div className="space-y-6">
-      {blueprint.source !== "blueprint" && (
-        <div className="flex flex-col gap-3 rounded-2xl border border-[#3A2B13] bg-[#1C1610] p-4 text-sm text-slate-300 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="font-medium text-medium">This visual is derived from older AI content.</p>
-            <p className="text-slate-400">It is richer than the legacy graph, but regenerating will produce the full stage-by-stage blueprint.</p>
-          </div>
-          {onRegenerate && (
-            <Button size="sm" onClick={onRegenerate} className="bg-leetcode hover:bg-leetcode-dark text-black">
-              Regenerate Blueprint
-            </Button>
-          )}
-        </div>
-      )}
-
       <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
         <div className="rounded-[28px] border border-[#2D2417] bg-[radial-gradient(circle_at_top_left,rgba(255,161,22,0.18),transparent_38%),linear-gradient(135deg,#18120D_0%,#0F1115_100%)] p-6">
           <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-leetcode">
             <Sparkles className="h-4 w-4" />
-            Visual Metaphor
+            Example Input
           </div>
-          <p className="text-lg font-semibold leading-relaxed text-white">{blueprint.metaphor}</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Objective</p>
-              <p className="text-sm leading-6 text-slate-200">{blueprint.objective}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/20 p-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Invariant</p>
-              <p className="text-sm leading-6 text-slate-200">{blueprint.invariant}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
-          <div className="rounded-2xl border border-[#1F3A31] bg-[#0F1916] p-4">
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-easy">
-              <Route className="h-4 w-4" />
-              Time Cost
-            </div>
-            <p className="text-xl font-semibold text-white">{blueprint.complexity.time}</p>
-          </div>
-          <div className="rounded-2xl border border-[#2D2417] bg-[#18140D] p-4">
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-medium">
-              <Boxes className="h-4 w-4" />
-              Space Cost
-            </div>
-            <p className="text-xl font-semibold text-white">{blueprint.complexity.space}</p>
-          </div>
-          <div className="rounded-2xl border border-[#21263A] bg-[#10131D] p-4">
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8DA2FF]">
-              <Binary className="h-4 w-4" />
-              Cost Driver
-            </div>
-            <p className="text-sm leading-6 text-slate-200">{blueprint.complexity.driver}</p>
-          </div>
+          <p className="text-lg font-semibold leading-relaxed text-white">{iteration.inputExample}</p>
         </div>
       </div>
 
       <div className="rounded-[28px] border border-[#222] bg-[#0D0F14] p-5 md:p-6">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Stage Timeline</p>
-            <h4 className="mt-1 text-lg font-semibold text-white">Follow the state transitions instead of memorizing steps</h4>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Execution Trace</p>
+            <h4 className="mt-1 text-lg font-semibold text-white">Follow the algorithm step-by-step</h4>
           </div>
           <Badge variant="outline" className="border-[#2E3340] bg-[#151922] px-3 py-1 text-[11px] text-slate-300">
-            {blueprint.stages.length} stages
+            {iteration.steps.length} steps
           </Badge>
         </div>
 
         <div className="grid gap-3 xl:grid-cols-[1.1fr_1.3fr]">
-          <div className="space-y-3">
-            {blueprint.stages.map((stage, index) => {
-              const isActive = stage.id === activeStage.id;
+          <div className="space-y-3 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {iteration.steps.map((step, index) => {
+              const isActive = index === activeStepIndex;
 
               return (
                 <button
-                  key={stage.id}
+                  key={index}
                   type="button"
-                  onClick={() => setActiveStageId(stage.id)}
-                  className={`w-full rounded-2xl border px-4 py-4 text-left transition-all ${isActive
+                  onClick={() => setActiveStepIndex(index)}
+                  className={`w-full text-left transition-all p-4 rounded-2xl border ${isActive
                     ? "border-leetcode/50 bg-[#1A1410] shadow-[0_0_0_1px_rgba(255,161,22,0.15)]"
                     : "border-[#222833] bg-[#11151D] hover:border-[#313949] hover:bg-[#141925]"
                     }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${isActive ? "bg-leetcode text-black" : "bg-[#1A2130] text-slate-300"}`}>
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-semibold text-white">{stage.title}</p>
-                        {index < blueprint.stages.length - 1 && <ArrowRight className="h-3.5 w-3.5 text-slate-500" />}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${isActive ? "bg-leetcode text-black" : "bg-[#1A2130] text-slate-300"}`}>
+                        {step.step}
                       </div>
-                      <p className="mt-1 text-sm leading-6 text-slate-400">{stage.goal}</p>
+                      <p className="font-semibold text-white">{step.title}</p>
                     </div>
                   </div>
                 </button>
@@ -512,117 +199,33 @@ function ArchitectureStudio({
             })}
           </div>
 
-          <div className="rounded-[24px] border border-[#262C38] bg-[linear-gradient(180deg,#121722_0%,#0D1017_100%)] p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="rounded-[24px] border border-[#262C38] bg-[linear-gradient(180deg,#121722_0%,#0D1017_100%)] p-5 flex flex-col gap-6 max-h-[500px] overflow-y-auto custom-scrollbar">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-leetcode mb-2">Detailed Explanation</p>
+              <p className="text-sm leading-6 text-slate-200">{activeStep.explanation}</p>
+            </div>
+
+            {activeStep.variables.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-leetcode">Focused Stage</p>
-                <h5 className="mt-1 text-xl font-semibold text-white">{activeStage.title}</h5>
-              </div>
-              <Badge variant="outline" className="border-[#30384A] bg-[#171C27] text-slate-300">
-                {activeStage.id}
-              </Badge>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-white/6 bg-black/20 p-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Input Focus</p>
-                <p className="text-sm leading-6 text-slate-200">{activeStage.inputFocus}</p>
-              </div>
-              <div className="rounded-2xl border border-white/6 bg-black/20 p-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Transform</p>
-                <p className="text-sm leading-6 text-slate-200">{activeStage.operation}</p>
-              </div>
-              <div className="rounded-2xl border border-white/6 bg-black/20 p-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Output State</p>
-                <p className="text-sm leading-6 text-slate-200">{activeStage.outputState}</p>
-              </div>
-              <div className="rounded-2xl border border-white/6 bg-black/20 p-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Why It Matters</p>
-                <p className="text-sm leading-6 text-slate-200">{activeStage.whyItMatters}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-[#2A3140] bg-[#0F141D] p-4">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Nearby Transitions</p>
-              <div className="flex flex-wrap gap-2">
-                {activeConnections.length > 0 ? (
-                  activeConnections.map((connection) => (
-                    <span
-                      key={`${connection.from}-${connection.to}-${connection.label}`}
-                      className="rounded-full border border-[#364056] bg-[#151B26] px-3 py-1.5 text-xs text-slate-300"
-                    >
-                      {connection.label}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-slate-500">This stage directly resolves into the answer.</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[28px] border border-[#222] bg-[#0D1015] p-5 md:p-6">
-          <div className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-            <Boxes className="h-4 w-4" />
-            State Snapshots
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {blueprint.snapshots.map((snapshot) => (
-              <div key={snapshot.label} className="rounded-2xl border border-[#252B36] bg-[#121722] p-4">
-                <p className="font-semibold text-white">{snapshot.label}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{snapshot.focus}</p>
-                <div className="mt-4 space-y-2">
-                  {snapshot.items.map((item) => (
-                    <div key={item} className="rounded-xl border border-[#202632] bg-[#0E131C] px-3 py-2 text-sm leading-5 text-slate-300">
-                      {item}
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8DA2FF] mb-3">Variables</p>
+                <div className="flex flex-wrap gap-3">
+                  {activeStep.variables.map((v, i) => (
+                    <div key={i} className="rounded-xl border border-[#2A3140] bg-[#0F141D] px-3 py-2 flex items-center gap-2">
+                       <span className="text-xs font-mono text-slate-400">{v.name}:</span>
+                       <span className="text-sm font-semibold text-white font-mono">{v.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        <div className="space-y-4">
-          <div className="rounded-[28px] border border-[#222] bg-[#0D1015] p-5 md:p-6">
-            <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              <Route className="h-4 w-4" />
-              Decision Gates
-            </div>
-            <div className="space-y-3">
-              {blueprint.decisions.map((decision) => (
-                <div key={decision.label} className="rounded-2xl border border-[#252B36] bg-[#121722] p-4">
-                  <p className="font-semibold text-white">{decision.label}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{decision.condition}</p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#1F3A31] bg-[#0E1714] p-3 text-sm text-slate-300">
-                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-easy">If True</p>
-                      {decision.ifTrue}
-                    </div>
-                    <div className="rounded-xl border border-[#3B2730] bg-[#170E13] p-3 text-sm text-slate-300">
-                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#FF7A93]">If False</p>
-                      {decision.ifFalse}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[28px] border border-[#35252B] bg-[#140E12] p-5 md:p-6">
-            <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#FF9AAF]">
-              <ShieldAlert className="h-4 w-4" />
-              Failure Modes
-            </div>
-            <div className="space-y-2">
-              {blueprint.pitfalls.map((pitfall) => (
-                <div key={pitfall} className="rounded-xl border border-[#473039] bg-[#1A1116] px-3 py-3 text-sm leading-6 text-slate-200">
-                  {pitfall}
-                </div>
-              ))}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-easy mb-3">Visual State</p>
+              <div className="rounded-xl border border-[#1F3A31] bg-[#0E1714] p-4 overflow-x-auto">
+                <pre className="text-sm font-mono text-slate-300 leading-relaxed whitespace-pre">
+                  {activeStep.visualState}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
@@ -699,6 +302,29 @@ export function ProblemView({ slug }: ProblemViewProps) {
     fetchQuestion();
   }, [fetchQuestion]);
 
+  // Load cached AI data if present
+  useEffect(() => {
+    if (question?.aiContent) {
+      if (question.aiContent.complexity) {
+        try {
+          const parsed = JSON.parse(question.aiContent.complexity) as { ladder: ComplexityTier[] };
+          if (parsed?.ladder?.length > 0) {
+            setComplexityLadder(parsed.ladder);
+          }
+        } catch { }
+      }
+      if (question.aiContent.implementations) {
+        try {
+          const parsed = JSON.parse(question.aiContent.implementations) as { implementations: ImplementationTier[] };
+          if (parsed?.implementations?.length > 0) {
+            setImplementationLadder(parsed.implementations);
+            setSelectedImplementationIndex(Math.max(0, parsed.implementations.length - 1));
+          }
+        } catch { }
+      }
+    }
+  }, [question]);
+
   // Check if already solved
   useEffect(() => {
     if (!session?.user || !question) return;
@@ -762,6 +388,9 @@ export function ProblemView({ slug }: ProblemViewProps) {
           colors: ["#FFA116", "#00B8A3", "#FFC01E", "#FF375F"],
         });
       }
+      
+      // Notify sidebar components to refresh history
+      window.dispatchEvent(new CustomEvent('historyUpdated'));
     } catch {
       // Revert optimistic update
       setIsSolved(wasSolved);
@@ -913,7 +542,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-8 space-y-6">
+      <div className="mt-[72px] lg:mt-20 space-y-6">
         <div className="space-y-3">
           <div className="h-8 w-2/3 rounded-lg shimmer" />
           <div className="flex gap-2">
@@ -959,13 +588,8 @@ export function ProblemView({ slug }: ProblemViewProps) {
         ? selectedImplementation?.solutionJava
         : selectedImplementation?.solutionCpp;
   const displayedSolutionCode = ladderSolutionCode ?? solutionCode;
-  const blueprint = question.aiContent
-    ? normalizeBlueprint({
-      title: question.title,
-      approach: question.aiContent.approach,
-      algorithm: question.aiContent.algorithm,
-      visualize: question.aiContent.visualize,
-    })
+  const iterationData = question.aiContent
+    ? parseVisualization(question.aiContent.visualize)
     : null;
 
   const hasAIContent = Boolean(question.aiContent);
@@ -1001,16 +625,16 @@ export function ProblemView({ slug }: ProblemViewProps) {
   };
 
   return (
-    <div className="mt-8">
+    <div className="mt-[72px] lg:mt-20">
       {/* ── Header ────────────────────────────────────── */}
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <h1 className="text-2xl font-bold leading-tight">{question.title}</h1>
+        <div className="flex flex-wrap items-start gap-3 mb-3">
+          <h1 className="text-xl sm:text-2xl font-bold leading-tight flex-1 min-w-0">{question.title}</h1>
           {session?.user && (
             <Button
               onClick={handleMarkSolved}
               disabled={solvingInProgress}
-              className={`shrink-0 transition-all duration-300 ${isSolved
+              className={`shrink-0 transition-all duration-300 text-xs sm:text-sm ${isSolved
                 ? "bg-easy hover:bg-easy/80 text-white solved-glow"
                 : "bg-[#2A2A2A] hover:bg-[#333] text-foreground border border-[#333]"
                 }`}
@@ -1061,35 +685,26 @@ export function ProblemView({ slug }: ProblemViewProps) {
         }}
         className="space-y-6"
       >
-        <TabsList className="bg-transparent border-b border-[#333] p-0 h-auto overflow-x-auto overflow-y-hidden no-scrollbar flex-nowrap gap-4 md:gap-6 rounded-none justify-start w-full">
+        <TabsList className="bg-transparent p-0 flex flex-wrap gap-2 md:gap-3 !h-auto w-full mb-8 justify-start">
           {[
             { id: "description", label: "Description" },
             { id: "hints", label: "Hints", icon: Lightbulb },
             { id: "approach", label: "Mental Model", icon: Brain },
             { id: "algorithm", label: "Execution", icon: ListOrdered },
-            { id: "visualize", label: "Architecture", icon: GitBranch },
+            { id: "visualize", label: "Example Iteration", icon: GitBranch },
             { id: "complexity", label: "Complexity", icon: Gauge },
             { id: "solution", label: "Implementation", icon: Code2 },
             { id: "stats", label: "Reality Check", icon: BarChart3 },
           ].map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
             return (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="relative rounded-none bg-transparent px-0 py-3 text-sm text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-leetcode data-[state=active]:shadow-none"
+                className="flex-none h-10 px-4 py-2 text-xs sm:text-sm font-medium rounded-full border border-[#222] bg-[#1A1A1A]/60 text-muted-foreground transition-all hover:bg-[#2A2A2A] hover:text-white data-[state=active]:bg-leetcode/10 data-[state=active]:text-leetcode data-[state=active]:border-leetcode/40 data-[state=active]:shadow-none"
               >
-                {Icon && <Icon className="h-4 w-4 mr-2" />}
+                {Icon && <Icon className="h-4 w-4" />}
                 {tab.label}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabBottom"
-                    className="absolute inset-x-0 -bottom-px h-0.5 bg-leetcode"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
               </TabsTrigger>
             );
           })}
@@ -1173,7 +788,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Approach */}
         <TabsContent value="approach" className="mt-0">
           <FadeIn>
-            <div className="bg-[#121212] rounded-xl border border-[#222] p-8 shadow-sm">
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="rounded-xl bg-leetcode/10 p-2.5">
                   <Brain className="h-5 w-5 text-leetcode" />
@@ -1219,7 +834,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Algorithm */}
         <TabsContent value="algorithm" className="mt-0">
           <FadeIn>
-            <div className="bg-[#121212] rounded-xl border border-[#222] p-8 shadow-sm">
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="rounded-xl bg-leetcode/10 p-2.5">
                   <ListOrdered className="h-5 w-5 text-leetcode" />
@@ -1258,47 +873,42 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Visualise */}
         <TabsContent value="visualize" className="mt-0">
           <FadeIn>
-            <div className="bg-[#121212] rounded-xl border border-[#222] p-8 shadow-sm">
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="rounded-xl bg-leetcode/10 p-2.5">
                   <GitBranch className="h-5 w-5 text-leetcode" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Visual Solution Blueprint</h3>
+                  <h3 className="text-lg font-semibold tracking-tight">Example Iteration</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    See the algorithm as a sequence of state transitions, decision gates, and snapshots.
+                    Step-by-step trace of the algorithm on a concrete example.
                   </p>
                 </div>
               </div>
               {hasAIContent ? (
                 <div className="rounded-xl border border-[#222] bg-[#0A0A0A] p-4 md:p-5">
-                  {blueprint && (
-                    <ArchitectureStudio
-                      blueprint={blueprint}
+                  {iterationData ? (
+                    <IterationVisualizer
+                      iteration={iterationData}
                       onRegenerate={() => ensureAIContent(true)}
                     />
-                  )}
-                  {!blueprint && (
+                  ) : (
                     <div className="flex flex-col items-center gap-3 p-6 text-center">
                       <AlertTriangle className="h-8 w-8 text-medium" />
                       <p className="text-sm text-muted-foreground">The current visualization payload could not be interpreted.</p>
-                    </div>
-                  )}
-                  {blueprint?.source !== "blueprint" && (
-                    <div className="mt-4 flex justify-end">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-[#333] hover:bg-[#161616]"
+                        className="mt-2 border-[#333] hover:bg-[#161616]"
                         onClick={() => ensureAIContent(true)}
                       >
-                        Upgrade This Visual
+                        Generate Iteration Trace
                       </Button>
                     </div>
                   )}
                 </div>
               ) : (
-                renderAIFallback("visual blueprint")
+                renderAIFallback("example iteration")
               )}
             </div>
           </FadeIn>
@@ -1307,7 +917,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Complexity */}
         <TabsContent value="complexity" className="mt-0">
           <FadeIn>
-            <div className="rounded-xl border border-[#222] bg-[#121212] p-8 shadow-sm">
+            <div className="rounded-xl border border-[#222] bg-[#121212] p-4 sm:p-6 md:p-8 shadow-sm">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-xl bg-leetcode/10 p-2.5">
                   <Gauge className="h-5 w-5 text-leetcode" />
@@ -1540,7 +1150,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
           <FadeIn>
             <div className="relative overflow-hidden rounded-2xl border border-leetcode/20 bg-[#0A0A0A] p-[1px]">
               <div className="absolute inset-0 bg-gradient-to-br from-leetcode/20 via-transparent to-transparent opacity-50" />
-              <div className="relative h-full w-full rounded-[15px] bg-[#111] p-8">
+              <div className="relative h-full w-full rounded-[15px] bg-[#111] p-4 sm:p-6 md:p-8">
                 <div className="z-10 relative flex items-center gap-4 mb-8">
                   <div className="rounded-xl bg-leetcode/10 p-3 shadow-[0_0_15px_rgba(255,161,22,0.15)] ring-1 ring-leetcode/20">
                     <BarChart3 className="h-5 w-5 text-leetcode" />

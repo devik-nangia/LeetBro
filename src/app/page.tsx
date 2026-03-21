@@ -27,7 +27,7 @@ export default function Home() {
       {/* Hero Section */}
       <main className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-6">
             Stop reading solutions. <br />
             <span className="text-[#FFA116]">Start thinking.</span>
           </h1>
