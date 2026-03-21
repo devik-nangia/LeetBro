@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Trophy, ChevronDown, Filter } from "lucide-react";
+import { Search, Trophy, ChevronDown, Filter, Map } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -89,6 +89,21 @@ export function Sidebar() {
 
   return (
     <aside className="fixed top-14 left-0 bottom-0 w-[250px] border-r border-border bg-[#1F1F1F] hidden md:flex flex-col z-40">
+      {/* Roadmaps Nav Link */}
+      <div className="px-3 pt-3 pb-2 border-b border-[#333]">
+        <button
+          onClick={() => router.push("/roadmaps")}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+            pathname?.startsWith("/roadmaps")
+              ? "bg-[#FFA116]/10 text-[#FFA116] border border-[#FFA116]/20"
+              : "text-neutral-400 hover:text-white hover:bg-[#2A2A2A] border border-transparent"
+          }`}
+        >
+          <Map className="h-4 w-4 shrink-0" />
+          Roadmaps
+        </button>
+      </div>
+
       {/* Stats Header */}
       <div className="p-4 border-b border-[#333]">
         <div className="flex items-center gap-2 mb-1">

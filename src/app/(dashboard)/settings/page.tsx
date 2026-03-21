@@ -81,7 +81,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 mt-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Settings className="h-8 w-8 text-[#FFA116]" />

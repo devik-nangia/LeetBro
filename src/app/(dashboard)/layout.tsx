@@ -10,7 +10,7 @@ export default function DashboardLayout({
     <div className="min-h-screen overflow-x-hidden">
       <TopNav />
       <Sidebar />
-      <main className="md:ml-[250px] pt-14 p-4 md:p-6">
+      <main className="md:ml-[250px] pt-14 md:pt-20 px-4 md:px-6 pb-4 md:pb-6">
         {children}
       </main>
     </div>

@@ -542,7 +542,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-4 lg:mt-20 space-y-6">
+      <div className="mt-4 space-y-6">
         <div className="space-y-3">
           <div className="h-8 w-2/3 rounded-lg shimmer" />
           <div className="flex gap-2">
@@ -625,7 +625,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
   };
 
   return (
-    <div className="mt-4 lg:mt-20">
+    <div className="mt-4">
       {/* ── Header ────────────────────────────────────── */}
       <div className="mb-6">
         <div className="flex flex-wrap items-start gap-3 mb-3">

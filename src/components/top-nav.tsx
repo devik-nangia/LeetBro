@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, User, Settings, LogOut, Code2, Menu, X, Trophy, Filter, ChevronDown } from "lucide-react";
+import { Search, User, Settings, LogOut, Code2, Menu, X, Trophy, Filter, ChevronDown, Map } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -180,6 +180,18 @@ export function TopNav() {
               <span className="text-lg font-bold hidden sm:block">
                 Leet<span className="text-[#FFA116]">Bro</span>
               </span>
+            </Link>
+            {/* Desktop Roadmaps link */}
+            <Link
+              href="/roadmaps"
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                pathname?.startsWith("/roadmaps")
+                  ? "bg-[#FFA116]/10 text-[#FFA116] border border-[#FFA116]/20"
+                  : "text-neutral-400 hover:text-white hover:bg-[#2A2A2A]"
+              }`}
+            >
+              <Map className="h-4 w-4" />
+              Roadmaps
             </Link>
           </div>
 
@@ -487,8 +499,15 @@ export function TopNav() {
               )}
             </ScrollArea>
 
-            {/* Settings link */}
-            <div className="p-3 border-t border-[#333] shrink-0">
+            {/* Settings + Roadmaps links */}
+            <div className="p-3 border-t border-[#333] shrink-0 space-y-1">
+              <button
+                onClick={() => { router.push("/roadmaps"); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#2A2A2A] transition-colors text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Map className="h-4 w-4" />
+                Roadmaps
+              </button>
               <button
                 onClick={() => { router.push("/settings"); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#2A2A2A] transition-colors text-sm text-muted-foreground hover:text-foreground"
