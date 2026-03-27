@@ -28,6 +28,7 @@ import {
   Circle,
   ExternalLink,
   Activity,
+  Youtube,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -289,6 +290,33 @@ export function ProblemView({ slug }: ProblemViewProps) {
       setIsAnalyzing(false);
     }
   };
+
+  // Video Solution feature
+  const [videoLang, setVideoLang] = useState<"python" | "java" | "cpp" | "javascript">("python");
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  const fetchVideo = useCallback(async (lang: string) => {
+    setIsVideoLoading(true);
+    setVideoError(null);
+    try {
+      const res = await fetch(`/api/questions/${slug}/video?lang=${lang}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch video");
+      setVideoId(data.videoId);
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : "Video fetch failed");
+    } finally {
+      setIsVideoLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    if (activeTab === "video" && !videoId && !isVideoLoading && !videoError) {
+      fetchVideo(videoLang);
+    }
+  }, [activeTab, videoId, isVideoLoading, videoError, fetchVideo, videoLang]);
 
   // User known topics
   const [knownTopics, setKnownTopics] = useState<string[]>([]);
@@ -735,6 +763,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsList className="bg-transparent p-0 flex flex-wrap gap-2 md:gap-3 !h-auto w-full mb-8 justify-start">
           {[
             { id: "description", label: "Description" },
+            { id: "video", label: "Video Solution", icon: Youtube },
             { id: "analyze", label: "Analyse My Code", icon: Activity },
             { id: "hints", label: "Hints", icon: Lightbulb },
             { id: "approach", label: "Mental Model", icon: Brain },
@@ -896,6 +925,72 @@ export function ProblemView({ slug }: ProblemViewProps) {
                   </div>
                 </div>
               )}
+            </div>
+          </FadeIn>
+        </TabsContent>
+
+        {/* Video Solution */}
+        <TabsContent value="video" className="mt-0">
+          <FadeIn>
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-leetcode/10 p-2">
+                    <Youtube className="h-5 w-5 text-leetcode" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-tight">Video Solution</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Watch a detailed explanation in your preferred language.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex bg-[#1A1A1A] p-1 rounded-lg border border-[#333]">
+                  {(["python", "java", "cpp", "javascript"] as const).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setVideoLang(lang);
+                        fetchVideo(lang);
+                      }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        videoLang === lang
+                          ? "bg-[#2A2A2A] text-white shadow-sm"
+                          : "text-muted-foreground hover:text-white"
+                      }`}
+                    >
+                      {lang === "cpp" ? "C++" : lang === "javascript" ? "JS" : lang.charAt(0).toUpperCase() + lang.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full aspect-video bg-[#0A0A0A] rounded-xl overflow-hidden border border-[#222] relative flex items-center justify-center">
+                {isVideoLoading ? (
+                  <div className="flex flex-col items-center text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-3 text-leetcode" />
+                    <p className="text-sm">Finding best video for {videoLang}...</p>
+                  </div>
+                ) : videoError ? (
+                  <div className="flex flex-col items-center text-red-400">
+                    <Activity className="h-8 w-8 mb-3" />
+                    <p className="text-sm">{videoError}</p>
+                    <Button variant="outline" size="sm" onClick={() => fetchVideo(videoLang)} className="mt-4 border-red-400/20 bg-red-400/10 hover:bg-red-400/20 text-red-400">
+                      Retry
+                    </Button>
+                  </div>
+                ) : videoId ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    className="absolute inset-0 w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No video found.</div>
+                )}
+              </div>
             </div>
           </FadeIn>
         </TabsContent>
