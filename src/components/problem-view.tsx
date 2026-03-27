@@ -26,10 +26,13 @@ import {
   ChevronDown,
   ChevronUp,
   Circle,
+  ExternalLink,
+  Activity,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -256,6 +259,36 @@ export function ProblemView({ slug }: ProblemViewProps) {
   const [activeTab, setActiveTab] = useState("description");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // Analyze Code feature
+  const [userCode, setUserCode] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeResult, setAnalyzeResult] = useState<any | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [remainingAnalyses, setRemainingAnalyses] = useState<number | null>(null);
+
+  const handleAnalyzeCode = async () => {
+    if (!userCode.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setAnalyzeError(null);
+    try {
+      const res = await fetch(`/api/questions/${slug}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: userCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to analyze code");
+      }
+      setAnalyzeResult(data.analysis);
+      setRemainingAnalyses(data.remaining);
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : "An error occurred. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // User known topics
   const [knownTopics, setKnownTopics] = useState<string[]>([]);
@@ -629,7 +662,21 @@ export function ProblemView({ slug }: ProblemViewProps) {
       {/* ── Header ────────────────────────────────────── */}
       <div className="mb-6">
         <div className="flex flex-wrap items-start gap-3 mb-3">
-          <h1 className="text-xl sm:text-2xl font-bold leading-tight flex-1 min-w-0">{question.title}</h1>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold leading-tight truncate">{question.title}</h1>
+            <a
+              href={`https://leetcode.com/problems/${question.slug}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0"
+              title="Open in LeetCode"
+            >
+              <Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs bg-[#1A1A1A]/60 border-[#222] text-muted-foreground hover:bg-[#2A2A2A] hover:text-white transition-colors">
+                <ExternalLink className="h-3.5 w-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">LeetCode</span>
+              </Button>
+            </a>
+          </div>
           {session?.user && (
             <Button
               onClick={handleMarkSolved}
@@ -688,6 +735,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsList className="bg-transparent p-0 flex flex-wrap gap-2 md:gap-3 !h-auto w-full mb-8 justify-start">
           {[
             { id: "description", label: "Description" },
+            { id: "analyze", label: "Analyse My Code", icon: Activity },
             { id: "hints", label: "Hints", icon: Lightbulb },
             { id: "approach", label: "Mental Model", icon: Brain },
             { id: "algorithm", label: "Execution", icon: ListOrdered },
@@ -717,6 +765,138 @@ export function ProblemView({ slug }: ProblemViewProps) {
               className="leetcode-content prose prose-invert max-w-none text-slate-300"
               dangerouslySetInnerHTML={{ __html: question.description }}
             />
+          </FadeIn>
+        </TabsContent>
+
+        {/* Analyse My Code */}
+        <TabsContent value="analyze" className="mt-0">
+          <FadeIn>
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-leetcode/10 p-2">
+                    <Activity className="h-5 w-5 text-leetcode" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-tight">Code Analysis</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Paste your solution here for a complete logic and complexity breakdown.
+                    </p>
+                  </div>
+                </div>
+                {remainingAnalyses !== null && (
+                  <Badge variant="outline" className="border-leetcode/30 bg-leetcode/10 text-leetcode">
+                    {remainingAnalyses}/5 queries remaining today
+                  </Badge>
+                )}
+              </div>
+
+              {!analyzeResult ? (
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Paste your code here..."
+                    value={userCode}
+                    onChange={(e) => setUserCode(e.target.value)}
+                    className="min-h-[250px] font-mono text-sm bg-[#1A1A1A] border-[#333] focus-visible:ring-leetcode"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      * This is an API Intensive task. You only have 5 inputs a day.
+                    </p>
+                    <Button
+                      onClick={handleAnalyzeCode}
+                      disabled={isAnalyzing || !userCode.trim()}
+                      className="bg-leetcode hover:bg-leetcode-dark text-black"
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Analyzing Code...
+                        </>
+                      ) : (
+                        "Analyze Code"
+                      )}
+                    </Button>
+                  </div>
+                  {analyzeError && (
+                    <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+                      {analyzeError}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-[#222] bg-[#1A1A1A] p-4 text-center">
+                      <div className="text-xs font-medium tracking-wider text-muted-foreground uppercase mb-1">Time Complexity</div>
+                      <div className="text-lg font-bold text-easy">{analyzeResult.timeComplexity}</div>
+                    </div>
+                    <div className="rounded-xl border border-[#222] bg-[#1A1A1A] p-4 text-center">
+                      <div className="text-xs font-medium tracking-wider text-muted-foreground uppercase mb-1">Space Complexity</div>
+                      <div className="text-lg font-bold text-[#8DA2FF]">{analyzeResult.spaceComplexity}</div>
+                    </div>
+                  </div>
+
+                  {analyzeResult.flaws && analyzeResult.flaws.length > 0 ? (
+                    <div>
+                      <h4 className="text-sm font-semibold uppercase tracking-widest text-[#FF375F] mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" /> Logical Flaws
+                      </h4>
+                      <ul className="space-y-2">
+                        {analyzeResult.flaws.map((flaw: string, i: number) => (
+                          <li key={i} className="text-sm text-slate-300 p-3 bg-[#FF375F]/10 border border-[#FF375F]/20 rounded-lg">
+                            {flaw}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-easy/10 border border-easy/20 rounded-xl flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-easy" />
+                      <p className="text-sm text-easy font-medium">Looks good! No logical flaws found.</p>
+                    </div>
+                  )}
+
+                  {analyzeResult.correctedCode && (
+                    <div>
+                      <h4 className="text-sm font-semibold uppercase tracking-widest text-leetcode mb-3 flex items-center gap-2">
+                        <Code2 className="h-4 w-4" /> Corrected Code
+                      </h4>
+                      <div className="relative rounded-xl overflow-hidden bg-[#1E1E1E] border border-[#333]">
+                        <SyntaxHighlighter
+                          language="javascript"
+                          style={vscDarkPlus}
+                          customStyle={{ margin: 0, padding: "1.5rem", fontSize: "14px", background: "transparent" }}
+                        >
+                          {analyzeResult.correctedCode}
+                        </SyntaxHighlighter>
+                      </div>
+                    </div>
+                  )}
+
+                  {analyzeResult.exampleIteration && (
+                    <div>
+                      <h4 className="text-sm font-semibold uppercase tracking-widest text-warning mb-3 flex items-center gap-2">
+                        <GitBranch className="h-4 w-4" /> Failure Trace
+                      </h4>
+                      <div className="p-1 rounded-2xl border border-warning/20 bg-warning/5">
+                        <IterationVisualizer iteration={analyzeResult.exampleIteration} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => { setAnalyzeResult(null); setUserCode(""); }}
+                      className="text-xs bg-[#222] border-[#333] hover:bg-[#333]"
+                    >
+                      Analyze Another Solution
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </FadeIn>
         </TabsContent>
 

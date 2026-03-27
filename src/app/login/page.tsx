@@ -1,10 +1,14 @@
-"use client";
-
-import { signIn } from "next-auth/react";
+import { signIn, auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Code2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await auth();
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-[#1A1A1A] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#262626] border border-[#333] rounded-2xl p-8 shadow-2xl">
@@ -20,11 +24,18 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Button
-          className="w-full bg-white text-black hover:bg-gray-100 font-medium text-base h-12 flex items-center justify-center gap-3 transition-colors"
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        <form
+          action={async () => {
+            "use server";
+            await signIn("google", { redirectTo: "/dashboard" });
+          }}
+          className="w-full"
         >
-          <svg
+          <Button
+            type="submit"
+            className="w-full bg-white text-black hover:bg-gray-100 font-medium text-base h-12 flex items-center justify-center gap-3 transition-colors"
+          >
+            <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             width="24"
@@ -47,8 +58,9 @@ export default function LoginPage() {
               d="M12 23.5c3.35 0 6.16-1.12 8.21-3.03l-4.04-2.9c-1.13.78-2.6 1.25-4.17 1.25-3.55 0-6.56-1.92-7.64-5.1l-4.02 3.12c2.08 3.88 6.08 6.66 10.66 6.66z"
             />
           </svg>
-          Continue with Google <ArrowRight className="h-4 w-4 ml-1" />
-        </Button>
+            Continue with Google <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </form>
 
         <p className="mt-8 text-xs text-center text-[#888] leading-relaxed">
           By signing in, you agree to our Terms of Service and Privacy Policy. We&apos;ll only use your email to create your account.

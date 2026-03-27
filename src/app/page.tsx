@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, Code2, Brain, CheckCircle2, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-[#E8E8E8] selection:bg-[#FFA116]/30">
       {/* Navbar */}

@@ -59,6 +59,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   solvedQuestions UserSolvedQuestion[]
+  codeAnalyses   UserCodeAnalysis[]
 }
 
 model Question {
@@ -73,6 +74,7 @@ model Question {
 
   aiContent      QuestionAIContent?
   solvedByUsers  UserSolvedQuestion[]
+  codeAnalyses   UserCodeAnalysis[]
 }
 
 model QuestionAIContent {
@@ -104,4 +106,14 @@ model UserSolvedQuestion {
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
+}
+
+model UserCodeAnalysis {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }

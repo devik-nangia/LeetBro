@@ -96,3 +96,62 @@ Return a JSON object with these exact keys:
 
 Respond ONLY with the JSON object. Keep text explanations concise but educational. No markdown, no extra text.`;
 }
+
+export interface GeminiAnalyzeCodeResponse {
+  timeComplexity: string;
+  spaceComplexity: string;
+  flaws: string[];
+  correctedCode: string;
+  exampleIteration: {
+    name: string;
+    dataStructure: "array" | "tree" | "linkedlist" | "string" | "graph" | "matrix" | "other";
+    inputExample: string;
+    steps: Array<{
+      step: number;
+      title: string;
+      explanation: string;
+      variables: Array<{ name: string; value: string }>;
+      visualState: string;
+    }>;
+  } | null;
+}
+
+export function buildAnalyzeCodePrompt(
+  title: string,
+  description: string,
+  userCode: string
+): string {
+  return `You are an expert competitive programming tutor. Given the following LeetCode problem and the user's code submission, perform a code review.
+
+**Problem:** ${title}
+**Description:**
+${description}
+
+**User's Code:**
+${userCode}
+
+Return a JSON object with these exact keys:
+1. "timeComplexity": The time complexity of the user's code (e.g., "O(N)", "O(1)").
+2. "spaceComplexity": The space complexity of the user's code (e.g., "O(N)", "O(1)").
+3. "flaws": An array of strings pointing out logical flaws, edge case failures, or inefficiencies. If none, return an empty array [].
+4. "correctedCode": The corrected, optimal version of the user's code in the same language. If the user's code is already optimal and correct, return the original code (possibly with minor stylistic improvements).
+5. "exampleIteration": (Optional) If the user's code has a logical flaw that causes it to fail or infinite loop, provide an example iteration showing exactly how their code fails on a specific input. Use the exact structure below, OR if no flaws exist, return null.
+
+Structure for "exampleIteration" (if provided):
+{
+  "name": "Failure Trace",
+  "dataStructure": "array", // or tree, linkedlist, string, graph, matrix, other
+  "inputExample": "Explain the input concisely, e.g. nums = [2, 7, 11, 15], target = 9",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Initialization / Fault",
+      "explanation": "What the user's code does incorrectly in this step.",
+      "variables": [ { "name": "i", "value": "0" } ],
+      "visualState": "An ASCII representation of the failed state. For example: [ *2*, 7, 11, 15 ]"
+    }
+  ]
+}
+
+Respond ONLY with the JSON object. Keep text explanations concise but educational. No markdown around the JSON.`;
+}
