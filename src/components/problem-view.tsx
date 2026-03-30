@@ -313,11 +313,8 @@ export function ProblemView({ slug }: ProblemViewProps) {
     }
   }, [slug]);
 
-  useEffect(() => {
-    if (activeTab === "video" && !videoId && !isVideoLoading && !videoError) {
-      fetchVideo(videoLang);
-    }
-  }, [activeTab, videoId, isVideoLoading, videoError, fetchVideo, videoLang]);
+  // Video is pre-fetched in the background when the question loads.
+  // The manual lang-change buttons in the Video tab call fetchVideo(lang) directly.
 
   // User known topics
   const [knownTopics, setKnownTopics] = useState<string[]>([]);
@@ -386,6 +383,17 @@ export function ProblemView({ slug }: ProblemViewProps) {
       }
     }
   }, [question]);
+
+  // Background prefetch: fire ALL API requests as soon as the question loads
+  // so every tab is ready before the user clicks on it
+  useEffect(() => {
+    if (!question) return;
+    void ensureAIContent();
+    void generateComplexityLadder();
+    void generateImplementationLadder();
+    void fetchVideo(videoLang);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id]);
 
   // Check if already solved
   useEffect(() => {
@@ -758,17 +766,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
       <Tabs
         value={activeTab}
         onValueChange={(value) => {
-          const next = String(value);
-          setActiveTab(next);
-          if (aiTabs.has(next)) {
-            void ensureAIContent();
-          }
-          if (next === "complexity") {
-            void generateComplexityLadder();
-          }
-          if (next === "solution") {
-            void generateImplementationLadder();
-          }
+          setActiveTab(String(value));
         }}
         className="space-y-6"
       >
