@@ -166,7 +166,7 @@ export function Sidebar() {
       </div>
 
       {/* History List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {isLoading ? (
           <div className="p-3 space-y-2">
             {[1, 2, 3].map((i) => (

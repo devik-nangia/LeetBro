@@ -250,6 +250,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSolved, setIsSolved] = useState(false);
   const [solvingInProgress, setSolvingInProgress] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
 
   // Hint reveal states
   const [revealedHints, setRevealedHints] = useState<Set<number>>(new Set());
@@ -730,15 +731,26 @@ export function ProblemView({ slug }: ProblemViewProps) {
           <Badge variant="outline" className={`${difficultyColor(question.difficulty)}`}>
             {question.difficulty}
           </Badge>
-          {question.tags.map((tag) => (
-            <Badge
-              key={tag}
+          {!showTopics && question.tags.length > 0 ? (
+            <Button
               variant="outline"
-              className="text-xs bg-[#1A1A1A] border-[#333] text-muted-foreground hover:bg-[#2A2A2A] transition-colors"
+              size="sm"
+              onClick={() => setShowTopics(true)}
+              className="h-6 px-2 text-xs bg-[#1A1A1A] border-[#333] text-muted-foreground hover:bg-[#2A2A2A] transition-colors"
             >
-              {tag}
-            </Badge>
-          ))}
+              Reveal Topics
+            </Button>
+          ) : (
+            question.tags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="outline"
+                className="text-xs bg-[#1A1A1A] border-[#333] text-muted-foreground hover:bg-[#2A2A2A] transition-colors"
+              >
+                {tag}
+              </Badge>
+            ))
+          )}
         </div>
       </div>
 
