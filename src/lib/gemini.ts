@@ -67,29 +67,31 @@ Return a JSON object with these exact keys:
 3. "hint3": A very strong hint that nearly describes the solution approach without showing any code. Someone reading this should almost know the exact algorithm (2-3 sentences).
 4. "approach": A detailed 2-3 paragraph explanation of HOW to think about this problem. Describe the mental model, key observations, and why a particular approach works. Do NOT include any code.
 5. "algorithm": A numbered step-by-step list (as a single string with newlines) describing the exact logical steps to implement the solution. NO code blocks. NO pseudocode. Pure english logical steps.
-6. "visualize": An object representing an EXAMPLE ITERATION. For every single question, take a concrete list, array, tree, or string as input and solve the question on that data structure, showing each step of the solution in extreme detail so the user can visualize what actually happens in each iteration.
+6. "visualize": An object representing an EXAMPLE ITERATION. Choose a DELIBERATELY COMPLEX, non-trivial input that exercises the most important edge cases and the core logic of the algorithm. Do NOT use the simplest possible example — choose one that would cause a naive or incorrect approach to fail (e.g., duplicate elements, wrapping around, odd/even length, repeated characters, negative numbers, etc., wherever applicable). Trace through every single step of the algorithm on this input in extreme detail.
    Use this exact structure:
    {
      "name": "Algorithm Trace",
      "dataStructure": "array", // Can be array, tree, linkedlist, string, graph, matrix, or other
-     "inputExample": "Explain the input concisely, e.g. nums = [2, 7, 11, 15], target = 9",
+     "inputExample": "Describe the input fully and explain WHY this input was chosen (what edge case it exercises). e.g. nums = [3, 1, 4, 1, 5, 9, 2, 6], target = 10 — contains duplicates and exercises wrap-around behavior",
      "steps": [
        {
          "step": 1,
          "title": "Initialization",
-         "explanation": "What we are doing in this step in extreme detail.",
+         "explanation": "What we are doing in this step in extreme detail. Explain the reasoning, not just the mechanics. Why are we initializing these variables? What invariant are we establishing?",
          "variables": [
            { "name": "i", "value": "0" },
-           { "name": "current_sum", "value": "2" }
+           { "name": "current_sum", "value": "3" }
          ],
-         "visualState": "An ASCII or structured text representation of the data structure at this exact moment. Highlight pointers, current nodes, or current array indices. For example: [ *2*, 7, 11, 15 ]\\n     ^ i=0"
+         "visualState": "An ASCII or structured text representation of the data structure at this exact moment. Highlight pointers, current nodes, or current array indices clearly. For example:\\n[ *3*, 1, 4, 1, 5, 9, 2, 6 ]\\n  ^ left=0                right=7 ^"
        }
      ]
    }
    Requirements:
-   - Provide enough steps to vividly illustrate the core logic on a non-trivial example input.
-   - The visualState MUST be clear, easy to read, and accurately reflect the step's changes. Use ASCII art/markers to show traversal.
-   - Keep variable states minimal but impactful (only track the most important pointers/counters).
+   - Use an input that is COMPLEX ENOUGH to show at least 8 meaningful algorithm steps. Do not stop early — trace the algorithm to its natural conclusion.
+   - Each step MUST have a thorough explanation describing what is happening AND why, including what decision is made and what condition triggered it.
+   - The visualState MUST be precise ASCII art that clearly shows the current state (indices, pointers, windows, stacks, paths, etc.) at that exact moment.
+   - Cover at least one edge case or non-trivial transition in the trace (e.g., a boundary condition, a skip/continue, a stack push/pop, a hash collision or miss, a pointer crossover, etc.).
+   - Keep variable states minimal but impactful (only the most important pointers/counters that change).
 7. "solutionPython": The optimal solution code in Python. Include comments explaining key lines.
 8. "solutionJava": The optimal solution code in Java. Include comments explaining key lines.
 9. "solutionCpp": The optimal solution code in C++. Include comments explaining key lines.

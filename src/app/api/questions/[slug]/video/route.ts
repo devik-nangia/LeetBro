@@ -11,7 +11,19 @@ export async function GET(
     
     // Extract language from search params
     const { searchParams } = new URL(req.url);
-    const lang = searchParams.get("lang") || "java"; // default to java
+    const langParam = searchParams.get("lang") || "java"; // default to java
+    
+    // Map language param to a better search term
+    let displayLang = langParam;
+    if (langParam.toLowerCase() === "cpp") {
+      displayLang = "C++";
+    } else if (langParam.toLowerCase() === "javascript") {
+      displayLang = "JavaScript";
+    } else if (langParam.toLowerCase() === "python") {
+      displayLang = "Python";
+    } else if (langParam.toLowerCase() === "java") {
+      displayLang = "Java";
+    }
 
     // Fetch the question title to form a better query
     const question = await prisma.question.findUnique({
@@ -23,7 +35,9 @@ export async function GET(
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
     }
 
-    const query = `LeetCode ${question.title} ${lang} solution`;
+    // Build a strongly language-specific query to prevent cross-language results
+    // e.g. for C++: "LeetCode Two Sum C++ solution explanation"
+    const query = `LeetCode ${question.title} ${displayLang} solution explanation`;
     const videoId = await getTopVideoForQuery(query);
 
     if (!videoId) {

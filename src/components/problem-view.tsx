@@ -131,10 +131,23 @@ function IterationVisualizer({
   onRegenerate?: () => void;
 }) {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     setActiveStepIndex(0);
+    setIsPlaying(false);
   }, [iteration]);
+
+  // Auto-play: advance step every 2.5s
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (activeStepIndex >= iteration.steps.length - 1) {
+      setIsPlaying(false);
+      return;
+    }
+    const t = setTimeout(() => setActiveStepIndex((i) => i + 1), 2500);
+    return () => clearTimeout(t);
+  }, [isPlaying, activeStepIndex, iteration.steps.length]);
 
   const activeStep = iteration.steps[activeStepIndex] ?? iteration.steps[0];
 
@@ -152,88 +165,136 @@ function IterationVisualizer({
     );
   }
 
+  const totalSteps = iteration.steps.length;
+  const progress = ((activeStepIndex + 1) / totalSteps) * 100;
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-[28px] border border-[#2D2417] bg-[radial-gradient(circle_at_top_left,rgba(255,161,22,0.18),transparent_38%),linear-gradient(135deg,#18120D_0%,#0F1115_100%)] p-6">
-          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-leetcode">
-            <Sparkles className="h-4 w-4" />
-            Example Input
+    <div className="space-y-5">
+      {/* Input Banner */}
+      <div className="rounded-2xl border border-[#2D2417] bg-gradient-to-r from-[#18120D] to-[#0F1115] px-5 py-5 flex items-center justify-between gap-4">
+        <p className="text-base font-bold text-white leading-relaxed font-mono">{iteration.inputExample}</p>
+        {onRegenerate && (
+          <button
+            onClick={onRegenerate}
+            className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-leetcode transition-colors"
+            title="Regenerate"
+          >
+            ↺ Regen
+          </button>
+        )}
+      </div>
+
+      {/* Progress bar + controls */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setIsPlaying(false); setActiveStepIndex(0); }}
+              disabled={activeStepIndex === 0 && !isPlaying}
+              className="h-7 w-7 rounded-lg border border-[#2E3340] bg-[#151922] text-slate-400 hover:text-white hover:border-[#444] disabled:opacity-30 transition-all flex items-center justify-center text-xs"
+              title="Reset"
+            >⏮</button>
+            <button
+              onClick={() => { setIsPlaying(false); setActiveStepIndex((i) => Math.max(0, i - 1)); }}
+              disabled={activeStepIndex === 0}
+              className="h-7 w-7 rounded-lg border border-[#2E3340] bg-[#151922] text-slate-400 hover:text-white hover:border-[#444] disabled:opacity-30 transition-all flex items-center justify-center text-xs"
+              title="Previous"
+            >◀</button>
+            <button
+              onClick={() => setIsPlaying((p) => !p)}
+              disabled={activeStepIndex >= totalSteps - 1 && !isPlaying}
+              className="h-7 px-3 rounded-lg border border-leetcode/40 bg-leetcode/10 text-leetcode text-xs font-semibold hover:bg-leetcode/20 disabled:opacity-30 transition-all"
+            >
+              {isPlaying ? "⏸ Pause" : "▶ Play"}
+            </button>
+            <button
+              onClick={() => { setIsPlaying(false); setActiveStepIndex((i) => Math.min(totalSteps - 1, i + 1)); }}
+              disabled={activeStepIndex >= totalSteps - 1}
+              className="h-7 w-7 rounded-lg border border-[#2E3340] bg-[#151922] text-slate-400 hover:text-white hover:border-[#444] disabled:opacity-30 transition-all flex items-center justify-center text-xs"
+              title="Next"
+            >▶</button>
           </div>
-          <p className="text-lg font-semibold leading-relaxed text-white">{iteration.inputExample}</p>
+          <span className="text-xs text-slate-500 font-mono">
+            Step <span className="text-slate-300 font-semibold">{activeStepIndex + 1}</span> / {totalSteps}
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="h-1.5 w-full rounded-full bg-[#1A1F2E] overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-leetcode/80 to-leetcode transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {/* Step pills */}
+        <div className="flex flex-wrap gap-1.5">
+          {iteration.steps.map((step, index) => (
+            <button
+              key={index}
+              onClick={() => { setIsPlaying(false); setActiveStepIndex(index); }}
+              className={`h-6 min-w-[24px] px-2 rounded-md text-[11px] font-bold transition-all ${
+                index === activeStepIndex
+                  ? "bg-leetcode text-black shadow-[0_0_8px_rgba(255,161,22,0.4)]"
+                  : index < activeStepIndex
+                  ? "bg-[#1E2810] text-easy/70 border border-easy/20"
+                  : "bg-[#151922] text-slate-500 border border-[#2E3340] hover:border-slate-500"
+              }`}
+              title={step.title}
+            >
+              {step.step}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-[#222] bg-[#0D0F14] p-5 md:p-6">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Execution Trace</p>
-            <h4 className="mt-1 text-lg font-semibold text-white">Follow the algorithm step-by-step</h4>
-          </div>
-          <Badge variant="outline" className="border-[#2E3340] bg-[#151922] px-3 py-1 text-[11px] text-slate-300">
-            {iteration.steps.length} steps
-          </Badge>
-        </div>
-
-        <div className="grid gap-3 xl:grid-cols-[1.1fr_1.3fr]">
-          <div className="space-y-3 max-h-[280px] xl:h-[500px] xl:max-h-none overflow-y-auto pr-2 custom-scrollbar">
-            {iteration.steps.map((step, index) => {
-              const isActive = index === activeStepIndex;
-
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setActiveStepIndex(index)}
-                  className={`w-full text-left transition-all p-4 rounded-2xl border ${isActive
-                    ? "border-leetcode/50 bg-[#1A1410] shadow-[0_0_0_1px_rgba(255,161,22,0.15)]"
-                    : "border-[#222833] bg-[#11151D] hover:border-[#313949] hover:bg-[#141925]"
-                    }`}
-                >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${isActive ? "bg-leetcode text-black" : "bg-[#1A2130] text-slate-300"}`}>
-                        {step.step}
-                      </div>
-                      <p className="font-semibold text-white">{step.title}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+      {/* Active step card */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeStepIndex}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22 }}
+          className="rounded-2xl border border-leetcode/25 bg-gradient-to-br from-[#15110A] to-[#0D1017] overflow-hidden"
+        >
+          {/* Step header */}
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1E2030] bg-[#0F1219]">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-leetcode text-black text-sm font-bold shadow-[0_0_12px_rgba(255,161,22,0.35)]">
+              {activeStep.step}
+            </div>
+            <h4 className="font-bold text-white text-base">{activeStep.title}</h4>
           </div>
 
-          <div className="rounded-[24px] border border-[#262C38] bg-[linear-gradient(180deg,#121722_0%,#0D1017_100%)] p-5 flex flex-col gap-6 max-h-[380px] xl:max-h-[500px] overflow-y-auto custom-scrollbar">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-leetcode mb-2">Detailed Explanation</p>
+          <div className="p-5 space-y-4">
+            {/* Explanation */}
+            <div className="rounded-xl bg-[#0A0D14] border border-[#1E2535] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-2">What Happens</p>
               <p className="text-sm leading-6 text-slate-200">{activeStep.explanation}</p>
             </div>
 
+            {/* Visual State */}
+            <div className="rounded-xl border border-[#1B3529] bg-[#091510] p-4 overflow-x-auto">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-easy/80 mb-3">Visual State</p>
+              <pre className="text-sm font-mono text-slate-200 leading-relaxed whitespace-pre">{activeStep.visualState}</pre>
+            </div>
+
+            {/* Variables */}
             {activeStep.variables.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8DA2FF] mb-3">Variables</p>
-                <div className="flex flex-wrap gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8DA2FF] mb-2">Variable Snapshot</p>
+                <div className="flex flex-wrap gap-2">
                   {activeStep.variables.map((v, i) => (
-                    <div key={i} className="rounded-xl border border-[#2A3140] bg-[#0F141D] px-3 py-2 flex items-center gap-2">
-                       <span className="text-xs font-mono text-slate-400">{v.name}:</span>
-                       <span className="text-sm font-semibold text-white font-mono">{v.value}</span>
+                    <div key={i} className="rounded-lg border border-[#2A3A60] bg-[#0D1325] px-3 py-1.5 flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-slate-400">{v.name}</span>
+                      <span className="text-[10px] text-slate-600">=</span>
+                      <span className="text-sm font-bold font-mono text-[#A8BFFF]">{v.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-easy mb-3">Visual State</p>
-              <div className="rounded-xl border border-[#1F3A31] bg-[#0E1714] p-4 overflow-x-auto">
-                <pre className="text-sm font-mono text-slate-300 leading-relaxed whitespace-pre">
-                  {activeStep.visualState}
-                </pre>
-              </div>
-            </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -301,6 +362,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
   const fetchVideo = useCallback(async (lang: string) => {
     setIsVideoLoading(true);
     setVideoError(null);
+    setVideoId(null); // clear previous video immediately so stale video doesn't show
     try {
       const res = await fetch(`/api/questions/${slug}/video?lang=${lang}`);
       const data = await res.json();
@@ -773,14 +835,14 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsList className="bg-transparent p-0 flex flex-wrap gap-2 md:gap-3 !h-auto w-full mb-8 justify-start">
           {[
             { id: "description", label: "Description" },
-            { id: "video", label: "Video Solution", icon: Youtube },
-            { id: "analyze", label: "Analyse My Code", icon: Activity },
             { id: "hints", label: "Hints", icon: Lightbulb },
             { id: "approach", label: "Mental Model", icon: Brain },
-            { id: "algorithm", label: "Execution", icon: ListOrdered },
+            { id: "algorithm", label: "Algorithm", icon: ListOrdered },
             { id: "visualize", label: "Example Iteration", icon: GitBranch },
-            { id: "complexity", label: "Complexity", icon: Gauge },
             { id: "solution", label: "Implementation", icon: Code2 },
+            { id: "complexity", label: "Complexity", icon: Gauge },
+            { id: "video", label: "Video Solution", icon: Youtube },
+            { id: "analyze", label: "Analyse My Code", icon: Activity },
             { id: "stats", label: "Reality Check", icon: BarChart3 },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -811,24 +873,13 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsContent value="analyze" className="mt-0">
           <FadeIn>
             <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-leetcode/10 p-2">
-                    <Activity className="h-5 w-5 text-leetcode" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold tracking-tight">Code Analysis</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Paste your solution here for a complete logic and complexity breakdown.
-                    </p>
-                  </div>
-                </div>
-                {remainingAnalyses !== null && (
+              {remainingAnalyses !== null && (
+                <div className="flex justify-end mb-4">
                   <Badge variant="outline" className="border-leetcode/30 bg-leetcode/10 text-leetcode">
                     {remainingAnalyses}/5 queries remaining today
                   </Badge>
-                )}
-              </div>
+                </div>
+              )}
 
               {!analyzeResult ? (
                 <div className="space-y-4">
@@ -943,18 +994,7 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsContent value="video" className="mt-0">
           <FadeIn>
             <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-leetcode/10 p-2">
-                    <Youtube className="h-5 w-5 text-leetcode" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold tracking-tight">Video Solution</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Watch a detailed explanation in your preferred language.
-                    </p>
-                  </div>
-                </div>
+              <div className="flex justify-end mb-4">
                 <div className="flex bg-[#1A1A1A] p-1 rounded-lg border border-[#333]">
                   {(["python", "java", "cpp", "javascript"] as const).map((lang) => (
                     <button
@@ -1073,39 +1113,20 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Approach */}
         <TabsContent value="approach" className="mt-0">
           <FadeIn>
-            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="rounded-xl bg-leetcode/10 p-2.5">
-                  <Brain className="h-5 w-5 text-leetcode" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Mental Model</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    The core framework to solve this problem optimally.
-                  </p>
-                </div>
-              </div>
+            <div className="bg-[#121212] rounded-xl border border-[#222] p-6 md:p-8 shadow-sm">
               {hasAIContent ? (
-                <div className="mt-6">
+                <div>
                   <div className="relative group overflow-hidden rounded-2xl border border-neutral-800/60 bg-gradient-to-br from-[#1A1A1A] to-[#141414] p-8 shadow-2xl transition-all duration-500 hover:border-[#FFA116]/40 hover:shadow-[0_0_30px_rgba(255,161,22,0.1)]">
                     {/* Decorative Elements */}
                     <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-[#FFA116]/0 blur-[50px] transition-all duration-700 group-hover:bg-[#FFA116]/15 pointer-events-none" />
                     <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-[#00B8A3]/0 blur-[50px] transition-all duration-700 group-hover:bg-[#00B8A3]/10 pointer-events-none" />
 
-                    <div className="relative z-10 flex gap-4">
-                      <div className="mt-1 shrink-0">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFA116]/10 border border-[#FFA116]/20">
-                          <Sparkles className="h-5 w-5 text-[#FFA116]" />
-                        </div>
-                      </div>
-
-                      <div className="flex-1 space-y-4">
-                        {question.aiContent?.approach?.split('\n\n').filter(p => p.trim().length > 0).map((paragraph, idx) => (
-                          <p key={idx} className={`text-[15.5px] leading-relaxed tracking-wide ${idx === 0 ? 'text-white font-medium text-lg' : 'text-slate-300'} font-sans`}>
-                            {paragraph.trim().replace(/^\*\*.*?\*\*\s*/, '')}
-                          </p>
-                        ))}
-                      </div>
+                    <div className="relative z-10 space-y-4">
+                      {question.aiContent?.approach?.split('\n\n').filter(p => p.trim().length > 0).map((paragraph, idx) => (
+                        <p key={idx} className={`text-[15.5px] leading-relaxed tracking-wide ${idx === 0 ? 'text-white font-medium text-lg' : 'text-slate-300'} font-sans`}>
+                          {paragraph.trim().replace(/^\*\*.*?\*\*\s*/, '')}
+                        </p>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1120,19 +1141,8 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsContent value="algorithm" className="mt-0">
           <FadeIn>
             <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="rounded-xl bg-leetcode/10 p-2.5">
-                  <ListOrdered className="h-5 w-5 text-leetcode" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Execution Strategy</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Step-by-step breakdown of the optimal algorithm.
-                  </p>
-                </div>
-              </div>
               {hasAIContent ? (
-                <div className="relative border-l-2 border-neutral-800/80 ml-4 mt-8 space-y-8 pb-4">
+                <div className="relative border-l-2 border-neutral-800/80 ml-4 space-y-8 pb-4">
                   {question.aiContent?.algorithm?.split('\n').filter(line => line.trim().length > 0).map((step, idx) => {
                     const cleanStep = step.replace(/^(\d+\.|Step \d+:?)\s*/i, '').trim();
                     return (
@@ -1158,44 +1168,29 @@ export function ProblemView({ slug }: ProblemViewProps) {
         {/* Visualise */}
         <TabsContent value="visualize" className="mt-0">
           <FadeIn>
-            <div className="bg-[#121212] rounded-xl border border-[#222] p-4 sm:p-6 md:p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="rounded-xl bg-leetcode/10 p-2.5">
-                  <GitBranch className="h-5 w-5 text-leetcode" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Example Iteration</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Step-by-step trace of the algorithm on a concrete example.
-                  </p>
-                </div>
-              </div>
-              {hasAIContent ? (
-                <div className="rounded-xl border border-[#222] bg-[#0A0A0A] p-4 md:p-5">
-                  {iterationData ? (
-                    <IterationVisualizer
-                      iteration={iterationData}
-                      onRegenerate={() => ensureAIContent(true)}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 p-6 text-center">
-                      <AlertTriangle className="h-8 w-8 text-medium" />
-                      <p className="text-sm text-muted-foreground">The current visualization payload could not be interpreted.</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-2 border-[#333] hover:bg-[#161616]"
-                        onClick={() => ensureAIContent(true)}
-                      >
-                        Generate Iteration Trace
-                      </Button>
-                    </div>
-                  )}
-                </div>
+            {hasAIContent ? (
+              iterationData ? (
+                <IterationVisualizer
+                  iteration={iterationData}
+                  onRegenerate={() => ensureAIContent(true)}
+                />
               ) : (
-                renderAIFallback("example iteration")
-              )}
-            </div>
+                <div className="flex flex-col items-center gap-3 p-6 text-center">
+                  <AlertTriangle className="h-8 w-8 text-medium" />
+                  <p className="text-sm text-muted-foreground">The current visualization payload could not be interpreted.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 border-[#333] hover:bg-[#161616]"
+                    onClick={() => ensureAIContent(true)}
+                  >
+                    Generate Iteration Trace
+                  </Button>
+                </div>
+              )
+            ) : (
+              renderAIFallback("example iteration")
+            )}
           </FadeIn>
         </TabsContent>
 
@@ -1203,18 +1198,6 @@ export function ProblemView({ slug }: ProblemViewProps) {
         <TabsContent value="complexity" className="mt-0">
           <FadeIn>
             <div className="rounded-xl border border-[#222] bg-[#121212] p-4 sm:p-6 md:p-8 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="rounded-xl bg-leetcode/10 p-2.5">
-                  <Gauge className="h-5 w-5 text-leetcode" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold tracking-tight">Complexity Ladder</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Ordered from brute force to the most optimal practical approach.
-                  </p>
-                </div>
-              </div>
-
               {isGeneratingComplexity ? (
                 <div className="flex min-h-36 items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin text-leetcode" />
@@ -1436,22 +1419,12 @@ export function ProblemView({ slug }: ProblemViewProps) {
             <div className="relative overflow-hidden rounded-2xl border border-leetcode/20 bg-[#0A0A0A] p-[1px]">
               <div className="absolute inset-0 bg-gradient-to-br from-leetcode/20 via-transparent to-transparent opacity-50" />
               <div className="relative h-full w-full rounded-[15px] bg-[#111] p-4 sm:p-6 md:p-8">
-                <div className="z-10 relative flex items-center gap-4 mb-8">
-                  <div className="rounded-xl bg-leetcode/10 p-3 shadow-[0_0_15px_rgba(255,161,22,0.15)] ring-1 ring-leetcode/20">
-                    <BarChart3 className="h-5 w-5 text-leetcode" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold tracking-tight text-slate-100">Reality Check</h3>
-                    <p className="text-sm text-leetcode/80 mt-1">AI assessment of your actual odds</p>
-                  </div>
-                </div>
-
                 {!session?.user ? (
-                  <div className="rounded-xl border border-dashed border-[#333] p-8 text-center text-muted-foreground z-10 relative">
+                  <div className="rounded-xl border border-dashed border-[#333] p-8 text-center text-muted-foreground">
                     <p className="text-sm">Sign in to get your AI success analysis.</p>
                   </div>
                 ) : (
-                  <div className="min-h-[200px] relative z-10 w-full">
+                  <div className="min-h-[200px] w-full">
                     {statsAnalysis ? (
                       <div className="group relative overflow-hidden rounded-xl border border-[#333] bg-[#161616] p-6 transition-all hover:border-leetcode/30 hover:shadow-[0_0_20px_rgba(255,161,22,0.05)]">
                         <div className="absolute inset-0 bg-gradient-to-b from-leetcode/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

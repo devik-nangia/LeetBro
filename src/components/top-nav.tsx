@@ -367,7 +367,7 @@ export function TopNav() {
           />
 
           {/* Drawer panel */}
-          <aside className="relative z-10 w-[280px] max-w-[85vw] bg-[#1F1F1F] flex flex-col h-full shadow-2xl border-r border-[#333]">
+          <aside className="relative z-10 w-[280px] max-w-[85vw] bg-[#1F1F1F] flex flex-col h-full overflow-hidden shadow-2xl border-r border-[#333]">
             {/* Drawer header */}
             <div className="flex items-center justify-between px-4 h-14 border-b border-[#333] shrink-0">
               <Link href="/dashboard" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
@@ -379,6 +379,21 @@ export function TopNav() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Roadmaps — above Problems Solved */}
+            <div className="px-3 pt-3 pb-2 border-b border-[#333] shrink-0">
+              <button
+                onClick={() => { router.push("/roadmaps"); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  pathname?.startsWith("/roadmaps")
+                    ? "bg-[#FFA116]/10 text-[#FFA116] border border-[#FFA116]/20"
+                    : "text-neutral-400 hover:text-white hover:bg-[#2A2A2A] border border-transparent"
+                }`}
+              >
+                <Map className="h-4 w-4 shrink-0" />
+                Roadmaps
               </button>
             </div>
 
@@ -434,69 +449,64 @@ export function TopNav() {
               </DropdownMenu>
             </div>
 
-            {/* History list */}
-            <ScrollArea className="flex-1">
-              {sidebarLoading ? (
-                <div className="p-3 space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-14 rounded-lg shimmer" />
-                  ))}
-                </div>
-              ) : !session?.user ? (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                  <p className="mb-2">Sign in to track progress</p>
-                  <Button
-                    size="sm"
-                    className="bg-[#FFA116] hover:bg-[#CC8112] text-black"
-                    onClick={() => { router.push("/login"); setMobileMenuOpen(false); }}
-                  >
-                    Sign In
-                  </Button>
-                </div>
-              ) : filteredHistory.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground text-xs">
-                  {filter || difficultyFilter !== "All"
-                    ? "No matching problems"
-                    : "No problems solved yet. Start exploring!"}
-                </div>
-              ) : (
-                <div className="p-2 space-y-1">
-                  {filteredHistory.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => { router.push(`/problem/${item.question.slug}`); setMobileMenuOpen(false); }}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
-                        activeSlug === item.question.slug
-                          ? "bg-[#FFA116]/10 border border-[#FFA116]/30"
-                          : "hover:bg-[#2A2A2A] border border-transparent"
-                      }`}
+            {/* History list — flex-1 + min-h-0 makes ScrollArea actually scroll */}
+            <div className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                {sidebarLoading ? (
+                  <div className="p-3 space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 rounded-lg shimmer" />
+                    ))}
+                  </div>
+                ) : !session?.user ? (
+                  <div className="p-4 text-center text-muted-foreground text-sm">
+                    <p className="mb-2">Sign in to track progress</p>
+                    <Button
+                      size="sm"
+                      className="bg-[#FFA116] hover:bg-[#CC8112] text-black"
+                      onClick={() => { router.push("/login"); setMobileMenuOpen(false); }}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-medium truncate flex-1 group-hover:text-[#FFA116] transition-colors">
-                          {item.question.title}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${sidebarDifficultyColor(item.question.difficulty)}`}
-                        >
-                          {item.question.difficulty[0]}
-                        </Badge>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+                      Sign In
+                    </Button>
+                  </div>
+                ) : filteredHistory.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground text-xs">
+                    {filter || difficultyFilter !== "All"
+                      ? "No matching problems"
+                      : "No problems solved yet. Start exploring!"}
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {filteredHistory.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => { router.push(`/problem/${item.question.slug}`); setMobileMenuOpen(false); }}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+                          activeSlug === item.question.slug
+                            ? "bg-[#FFA116]/10 border border-[#FFA116]/30"
+                            : "hover:bg-[#2A2A2A] border border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-medium truncate flex-1 group-hover:text-[#FFA116] transition-colors">
+                            {item.question.title}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${sidebarDifficultyColor(item.question.difficulty)}`}
+                          >
+                            {item.question.difficulty[0]}
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
 
-            {/* Settings + Roadmaps links */}
-            <div className="p-3 border-t border-[#333] shrink-0 space-y-1">
-              <button
-                onClick={() => { router.push("/roadmaps"); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#2A2A2A] transition-colors text-sm text-muted-foreground hover:text-foreground"
-              >
-                <Map className="h-4 w-4" />
-                Roadmaps
-              </button>
+            {/* Settings link */}
+            <div className="p-3 border-t border-[#333] shrink-0">
               <button
                 onClick={() => { router.push("/settings"); setMobileMenuOpen(false); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#2A2A2A] transition-colors text-sm text-muted-foreground hover:text-foreground"
